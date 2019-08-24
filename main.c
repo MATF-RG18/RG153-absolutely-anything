@@ -7,8 +7,6 @@ extern double animation_parameter_angle;
 extern double animation_parameter_hover;
 extern double clip_animation;
 extern int animation_ongoing;
-extern double brzina;
-extern int crtajDrvece;
 extern int nivo;
 extern int posX;
 extern int posY;
@@ -98,7 +96,10 @@ void on_keyboard(unsigned char key, int x, int y);
 void on_reshape(int width, int height);
 void on_display(void);
 
- 
+/*
+*u svakom trenutku moze da se klikne 0 1 ili 2 da bi se 
+*reinicijalizovali nutli,prvi ili drugi nivo
+*/ 
 void on_keyboard(unsigned char key, int x, int y)
 {
 	if(nivo==0)
@@ -141,6 +142,7 @@ void on_keyboard(unsigned char key, int x, int y)
 	{
 		switch(key)
 		{
+			//simulacija pobede drugog nivoa
 			case ']':
 			level_two_guessed_pulp_fiction=true;
 			level_two_guessed_green_mile=true;
@@ -149,6 +151,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			level_two_guessed_preacher=true;
 			check_win_condition();
 			break;
+
 			case '1':
 			{
 				scaleAnimation=0;
@@ -180,6 +183,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			}
 			break;
 
+			//rotacija celog nivoa
 			case '-':
 			{
 				if(!animation_ongoing)
@@ -193,6 +197,7 @@ void on_keyboard(unsigned char key, int x, int y)
 
 			}
 			break;
+			//stopiranje rotacije nivoa
 			case '=':
 			{
 				if(animation_ongoing)
@@ -205,17 +210,22 @@ void on_keyboard(unsigned char key, int x, int y)
 			}
 			break;
 
+			//postepena rotacija kamere u levo, odnosno u desno
 			case 'j':
+			case 'J':
 			animation_parameter_angle+=0.01;
 			glutPostRedisplay();
 			break;
 
 			case 'k':
+			case 'K':
 			animation_parameter_angle-=0.01;
 			glutPostRedisplay();
 			break;
 
+			//biranje objekata - pomeranje kursora levo ili desno
 			case 'm':
+			case 'M':
 			if(level_two_cursor!=OBJECT_2_NUM-1)
 			{
 				animation_parameter_hover=0;
@@ -231,24 +241,8 @@ void on_keyboard(unsigned char key, int x, int y)
 			
 			break;
 
-
-			case 's':
-			level_two_selected[level_two_cursor]=true;
-
-			break;
-
-			case 'a':
-			level_two_selected[level_two_cursor]=false;
-
-			break;
-
-			case 'x':
-			check_win_condition();
-
-			break;
-
-
 			case 'n':
+			case 'N':
 			if(level_two_cursor!=0)
 			{
 				level_two_cursor-=1;
@@ -263,17 +257,36 @@ void on_keyboard(unsigned char key, int x, int y)
 			
 			break;
 
+			//potvrda selektovanja objekta u drugom nivou
+			case 's':
+			case 'S':
+			level_two_selected[level_two_cursor]=true;
+			break;
+
+			//deselktovanje objekta u drugom nivou
+			case 'a':
+			case 'A':
+			level_two_selected[level_two_cursor]=false;
+			break;
+
+			//proveravanje da li datu selekciju povezuje neki film
+			case 'x':
+			case 'X':
+			check_win_condition();
+			break;
+
+
+			
+
 		}
 			
 	}
 	if(nivo==1)
 	{
-		printf("##########################\n");
-		printf("Clouds:%d\n",shouldDrawClouds);
-		printf("Rocks:%d\n",shouldDrawRocks);
-		printf("Trees:%d\n",shouldDrawTrees);
+
 		switch(key)
 		{
+			//brzo wipe-ovanje prvog nivoa
 			case ']':
 			level_two_guessed_pulp_fiction=true;
 			level_two_guessed_green_mile=true;
@@ -282,6 +295,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			level_two_guessed_preacher=true;
 			check_win_condition();
 			break;
+
 			case '1':
 			{
 
@@ -313,15 +327,15 @@ void on_keyboard(unsigned char key, int x, int y)
 				glutPostRedisplay();
 			}
 			break;
-			// case 'a':
-			// posX +=1;
-			// glutPostRedisplay();
-			// break;
+
+
+			//proveravanje da li se nalazite u zavrsnom stanju
 			case 'x':
 			case 'X':
 			check_win_condition_level_one();
 			break;
 
+			//trigger za sve mrtve objekte
 			case 'd':
 			case 'D':
 			triggerDeadClouds=true;
@@ -332,17 +346,8 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
-			// case 's':
-			// posY +=1;
-			// glutPostRedisplay();
-			// break;
 
-			// case 'w':
-			// posY -=1;
-			// glutPostRedisplay();
-			// break;
-
-
+			//trigger za sve zive objekte
 			case 'v':
 			case 'V':
 			triggerAlive=true;
@@ -351,7 +356,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
-
+			//trigger za sivu boju
 			case 'q':
 			case 'Q':
 			triggerColor[GRAY_COLOR]=true;
@@ -360,15 +365,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
-			case 'e':
-			case 'E':
-			triggerDeadClouds=true;
-			triggerDeadRocks=true;
-			scaleAnimationObjects=0;
-			glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID4);
-			glutPostRedisplay();
-			break;
-
+			//trigger za crvenu boju
 			case 'r':
 			case 'R':
 			triggerColor[RED_COLOR]=true;
@@ -377,6 +374,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
+			//trigger za zelenu boju
 			case 'g':
 			case 'G':
 			triggerColor[GREEN_COLOR]=true;
@@ -385,6 +383,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
+			//trigger za plavu boju
 			case 'b':
 			case 'B':
 			triggerColor[BLUE_COLOR]=true;
@@ -393,7 +392,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
-
+			//trigger sve cvrste objekte
 			case 's':
 			case 'S':
 			triggerSolidRocks=true;
@@ -401,18 +400,18 @@ void on_keyboard(unsigned char key, int x, int y)
 			scaleAnimationObjects=0;
 			glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID4);
 			glutPostRedisplay();
-
 			break;
 
+			//trigger za sve vazdusaste objekte
 			case 'a':
-			case 'A':
+			case 'A':	
 			triggerAiryClouds=true;
 			scaleAnimationObjects=0;
 			glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID4);
 			glutPostRedisplay();
-
 			break;
 
+			//trigger za sve velike objekte
 			case 'l':
 			case 'L':
 			triggerLargeClouds=true;
@@ -422,6 +421,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			glutPostRedisplay();
 			break;
 
+			//trigger za sve male objekte
 			case 't':
 			case 'T':
 			triggerTinyRocks=true;
@@ -431,24 +431,7 @@ void on_keyboard(unsigned char key, int x, int y)
 			break;
 
 
-			// case 'S':
-			// case 's':
-			// {
-			// 	animation_ongoing=0;
-			// }
-			// break;
-			// case 'd':
-			// case 'D':
-			// {
-			// 	if(crtajDrvece==1)
-			// 		crtajDrvece=0;
-			// 	else
-			// 		crtajDrvece=1;
-			// 	animation_ongoing=0;
-			// 	glutPostRedisplay();
-			// }
-			// break;
-
+			//zapocinjanje animacije rotacije
 			case '-':
 			{
 				if(!animation_ongoing)
@@ -462,6 +445,8 @@ void on_keyboard(unsigned char key, int x, int y)
 
 			}
 			break;
+
+			//stopiranje animacije rotacije
 			case '=':
 			{
 				if(animation_ongoing)
@@ -491,31 +476,32 @@ void on_display(void)
     /* Inicijalizuje se matrica transformacije. */
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    //gluLookAt(posX+12*sin(animation_parameter*2*pi+pi/4),posY+12*cos(animation_parameter*2*pi+pi/4),6,posX,posY,0,0,0,1);
-	//gluLookAt(posX+12*sin(animation_parameter*2*pi),posY+12*cos(animation_parameter*2*pi),2,posX,posY,0,0,0,1);
-	
-	
+
 
     if(nivo == 0)
-    {
+    {//iscrtavanje nultog nivoa (nicega)
 		gluLookAt(posX+12,posY+12,6,posX,posY,0,0,0,1);
-	    //drawTitleScreen();
 	}
 
     else if(nivo == 1)
-    {
+    {//iscrtavanje prvog nivoa 
+
 		double clip_plane[] = {-1, 0, 0, 15-35*clip_animation};
 		glClipPlane(GL_CLIP_PLANE1, clip_plane);
     	glEnable(GL_CLIP_PLANE1);
+
+
 		gluLookAt(posX+12*sin(animation_parameter*2*pi+pi/4),posY+12*cos(animation_parameter*2*pi+pi/4),6,posX,posY,0,0,0,1);
 	    draw_ground();
 		
-
+		//funckija za globalno skaliranje svih objekata, korisceno za animaciju
 		glScalef(scaleAnimationObjects,scaleAnimationObjects,scaleAnimationObjects);
 	    
 	    draw_forest();
 		draw_rocks();
 		draw_clouds();
+		
+		//inicijalizacija svih globalnih triggera za boje na false
 		for(int i=0; i<COLOR_NUM; i++)
 		{
 			triggerColor[i]=false;
@@ -526,7 +512,7 @@ void on_display(void)
 	}
 
 	else if(nivo == 2)
-    {
+    {//iscrtavanje drugog nivoa 
 		
 		gluLookAt(12*sin(animation_parameter_angle*2*pi),12*cos(animation_parameter_angle*2*pi),5,0,0,3,0,0,1);
 		
@@ -546,8 +532,6 @@ void on_display(void)
 	    
 	}
 
-	draw_debug_coosys();
-	
  
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
@@ -611,9 +595,9 @@ int main(int argc, char **argv)
  
 
     /* Postavljaju se svojstva materijala */
-    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffsW);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffsW);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffsW);
     glMaterialf(GL_FRONT, GL_SHININESS, shininess);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
@@ -636,34 +620,3 @@ int main(int argc, char **argv)
     gluPerspective(60, (float)width / height, 1, 100);
 }
  
-void draw_debug_cube(float x, float y, float z, float w, float h,
-                float d)
-{
-    glDisable(GL_LIGHTING);
-    glColor3f(1, 0.5, 0.5);
-    glPushMatrix();
-    glTranslatef(x, y, z);
-    glScalef(w, h, d);
-    glutWireCube(1);
-    glPopMatrix();
-    glEnable(GL_LIGHTING);
-}
- 
-void draw_debug_coosys()
-{
-    glDisable(GL_LIGHTING);
-    glBegin(GL_LINES);
-    glColor3f(1, 0, 0);
-    glVertex3f(100, 0, 0);
-    glVertex3f(0, 0, 0);
- 
-    glColor3f(0, 1, 0);
-    glVertex3f(0, 100, 0);
-    glVertex3f(0, 0, 0);
- 
-    glColor3f(0, 0, 1);
-    glVertex3f(0, 0, 100);
-    glVertex3f(0, 0, 0);
-    glEnd();
-    glEnable(GL_LIGHTING);
-}

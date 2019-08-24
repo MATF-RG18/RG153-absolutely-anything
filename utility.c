@@ -1,34 +1,72 @@
 #include "utility.h"
+
+/*DEO ZA PROMENLJIVE*/
 ////////////////////////////////////////////////////////////////////////////
- /* Konstanta pi. */
+//konstanta pi
 const float pi = 3.141592653589793;
+
+//parametar za animaciju, odnosno pomeranje kamere za nivo 1
 double animation_parameter = 0;
+
+//parametar za animaciju, odnosno pomeranje kamere za nivo 2
 double animation_parameter_angle = 0;
+
+//parametar koji se koristi za oscilovanje selektovanog objekta po z osi u nivou 2
 double animation_parameter_hover = 0;
+
+//parametar koji se koristi za wipe-ovanje nivoa pri zavrsetku, odnosno za transliranje clip ravni
 double clip_animation = 0;
+
+//indikator za animaciju
 int animation_ongoing = 0;
-double brzina=0;
-int crtajDrvece=1;
+
+/*
+indikator za trenutni broj nivoa
+nivo 0 - blank screen
+nivo 1 - izbacivanje i dodavanje objekata na osnovu atributa
+nivo 2 - zakljucivanje svih mogucih kombinacija atributa(filmova) koji povezuju objekte
+*/
 int nivo = 0;
+
+//parametri za pomeranje kamere po x odnosno y osi
 int posX = 0;
 int posY = 0;
+
+/*
+*parametar koji oznacava meru skaliranja podloge u oba nivoa
+*koristi se za pop-in/scale-in animaciju
+*/
 double scaleAnimation = 0;
+
+/*
+*parametar koji oznacava meru skaliranja objekata
+*koristi se za pop-in/scale-in animaciju objekata
+*/
 double scaleAnimationObjects = 1;
 
 
-//niz indikatora koja drveta ce se zapravo crtati
+/*
+*niz indikatora koji objekti odredjene boje ce se crtati
+*/
 bool shouldDrawColor[COLOR_NUM];
 bool shouldDrawColorClouds[COLOR_NUM];
 bool shouldDrawColorTrees[COLOR_NUM];
 bool shouldDrawColorRocks[COLOR_NUM];
 
-
+/*
+*niz indikatora koji objekti ce se uopste crtati, nezavisno od boje
+*/
 bool shouldDrawRocks=true;
 bool shouldDrawTrees=true;
 bool shouldDrawClouds=true;
 
-// niz indikatora koji oznacavaju da li ce se promeniti stanje crtanja 
-// odredjene grupe objekata
+/*
+*Niz indikatora koji oznacavaju da li ce se promeniti stanje crtanja 
+*odredjene grupe objekata. Implementtirano je pomocu triggera odnosno po switch-like
+*principu jer je veoma bitno da kada se neki iskoristi(postavi na true), posle promene
+*globalnog stanja iscrtavanja, postavi opet na false, da bi bila moguca implementacija
+*prikazivanja preseka skupova.
+*/
 bool triggerColor[COLOR_NUM];
 
 bool triggerLargeClouds=false;
@@ -45,70 +83,76 @@ bool triggerAlive=false;
 bool triggerDeadRocks=false;
 bool triggerDeadClouds=false;
 
+
+/*
+*indikatori koji prate da li su pogodjeni filmovi koji povezuju grupine objekata u drugom 
+*nivou
+*/
 bool level_two_guessed_pulp_fiction=false;
 bool level_two_guessed_green_mile=false;
 bool level_two_guessed_shawshank=false;
 bool level_two_guessed_looper=false;
 bool level_two_guessed_preacher=false;
 bool level_two_selected[OBJECT_2_NUM];
+
+/*broj koji oznacava na kom se objektu trenutno nalazimo u drugom nivou (koji objekat je trenutno selektovan)*/
 int level_two_cursor = BIBLE;
 
-/*Spisak svih mogucih materijala, za sada su koef. oblika atribut_coeff[inicijal boje materijala]*/
+/*Spisak svih mogucih materijala, vecina koef. su oblika atribut_coeff[inicijal boje materijala]*/
 
-GLfloat ambient_coeffs[] = { 0.3, 0.7, 0.3, 1 };
-GLfloat diffuse_coeffs[] = { 0.2, 1, 0.2, 1 };
+
 GLfloat specular_coeffs[] = { 0.5, 0.5, 0.5, 1 };
+
+//global shininess
 GLfloat shininess = 50;
 
+
+//crvena boja
 GLfloat ambient_coeffsR[] = { 0.7, 0.3, 0.3, 1 };
 GLfloat diffuse_coeffsR[] = { 1, 0.2, 0.2, 1 };
 GLfloat specular_coeffsR[] = { 0.7, 0.5, 0.5, 1 };
 
-
+//zelena boja
 GLfloat ambient_coeffsG[] = { 0.3, 0.7, 0.3, 1 };
 GLfloat diffuse_coeffsG[] = { 0.2, 0.5, 0.2, 1 };
 GLfloat specular_coeffsG2[] = { 0.2, 0.5, 0.2, 0.5 };
 GLfloat specular_coeffsG[] = { 0, 0, 0, 0.1 };
 
+//plava boja
 GLfloat ambient_coeffsB[] = { 0.3, 0.3, 0.7, 1 };
 GLfloat diffuse_coeffsB[] = { 0.2, 0.2, 1, 1 };
 GLfloat specular_coeffsB[] = { 0, 0, 0, 1 };
 
+//braon boja
 GLfloat ambient_coeffsBrown[] = { 139/255.0, 69/255.0, 19/255.0, 1 };
 GLfloat diffuse_coeffsBrown[] = { 139/255.0, 89/255.0, 29/255.0, 1 };
 GLfloat specular_coeffsBrown[] = { 0, 0, 0, 1 };
 
+//siva boja
 GLfloat ambient_coeffsGray[] = {0.3, 0.3, 0.3, 1};
 GLfloat diffuse_coeffsGray[] = {0.5, 0.5, 0.5, 1};
 GLfloat specular_coeffsGray[] = { 0, 0, 0, 1 };
 
+//crna boja
 GLfloat ambient_coeffsBlack[] = {0, 0, 0, 0};
 GLfloat diffuse_coeffsBlack[] = {0, 0, 0, 0};
 GLfloat specular_coeffsBlack[] = { 0, 0, 0, 1 };
 
-
+//bela boja
 GLfloat ambient_coeffsW[] = {1, 1, 1, 1};
 GLfloat diffuse_coeffsW[] = {1, 1, 1, 1};
 GLfloat specular_coeffsW[] = { 1, 1, 1, 1 };
 
 Color Colors[COLOR_NUM];
 ////////////////////////////////////////////////////////////////////////////
+
+
 void on_timer(int id)
 {
-	if(id==TIMER_ID)
-	{	
-		if(animation_parameter>=1)
-			animation_parameter=0;
-	    else
-			animation_parameter += 0.001;
 
-	 	glutPostRedisplay();
-	    if (animation_ongoing) {
-	        glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
-	    }
-	}
-	else if(id==TIMER_ID2)
-	{
+	
+	if(id==TIMER_ID2)
+	{//if koji postepeno rotira kameru
 	    animation_parameter -= 0.001;
 
 
@@ -118,10 +162,9 @@ void on_timer(int id)
 	    }
 	}
 	else if(id==TIMER_ID3)
-	{
-		
-		//printf("\nScale:%lf\n",scaleAnimation);
-		
+	{//if koji postepeno menja parametar za animaciju podloge u nivoima 1 i 2
+
+
 		if(scaleAnimation<1)
 		{
 			scaleAnimation+=0.03;
@@ -131,9 +174,8 @@ void on_timer(int id)
 		}
 	}
 	else if(id==TIMER_ID4)
-	{
-		
-		//printf("\nScale:%lf\n",scaleAnimationObjects);
+	{//if koji postepeno menja parametar za animaciju ostalih objekata
+
 		
 		if(scaleAnimationObjects<1)
 		{
@@ -144,7 +186,7 @@ void on_timer(int id)
 		}
 	}
 	else if(id==TIMER_ID5)
-	{
+	{//if koji povecava parametar za hoverovanje objekata dok ne premasi 1, onda ga prosledjuje funckiji koja ga smanjuje
 		
 		
 		
@@ -164,9 +206,8 @@ void on_timer(int id)
 		}	
 	}
 	else if(id==TIMER_ID6)
-	{
-		
-		//printf("\nAnimation:%lf \n",animation_parameter_hover);
+	{//if koji smanjuje parametar za hover-ovanje objekata dok ne premasi 0, onda ga prosledjuje funckiji koja ga povecava
+
 		
 		if(animation_parameter_hover>=0.0)
 		{
@@ -177,14 +218,14 @@ void on_timer(int id)
 		else
 		{
 			glutPostRedisplay();
-			//printf("\n lesser than 0:%lf\n",animation_parameter_hover);
+
 			glutTimerFunc(TIMER_INTERVAL2, on_timer, TIMER_ID5);
 		}	
 	}
 	else if(id==TIMER_ID7)
-	{
+	{//if za pomeranje clipping ravni, odnosno wipe-ovanje ekrana
 		
-		//printf("\nAnimation:%lf \n",animation_parameter_hover);
+
 		clip_animation+=0.05;
 		if(clip_animation<1)
 		{
@@ -194,6 +235,7 @@ void on_timer(int id)
 	}
 	
 }
+
 
 void draw_clock()
 {
@@ -236,7 +278,7 @@ void draw_clock()
 		glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsBlack);
 		glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsBlack);
 		glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsBlack);
-		//spoljasnje recke
+		//spoljasnje recke, koricenjem polarnih koordinata
 		for(int i=0;i<12;i++)
 		{
 			glPushMatrix();
@@ -278,8 +320,12 @@ void draw_clock()
 
 
 }
+
+
 void check_win_condition_level_one()
 {
+	//postepeno proverava da li su ispunjeni uslovi za svaku grupinu objakta, prvo za oblake, pa za drvece, pa za kamenje
+	//ako su svi uslovi ispunjeni, pokrece se animacija clipping ravni
 	if(shouldDrawClouds && !shouldDrawColorClouds[0] && !shouldDrawColorClouds[1] && !shouldDrawColorClouds[2] && shouldDrawColorClouds[3])
     {
         if(shouldDrawTrees && !shouldDrawColorTrees[0] && shouldDrawColorTrees[1] && !shouldDrawColorTrees[2] && !shouldDrawColorTrees[3])
@@ -293,6 +339,7 @@ void check_win_condition_level_one()
 }
 void check_win_condition()
 {
+	//postepena provera da li su pogodjeni odredjeni filmovi
 
 	if(level_two_selected[0]&& level_two_selected[1] && !level_two_selected[2] && level_two_selected[3] && !level_two_selected[4] && !level_two_selected[5])
 	{
@@ -320,6 +367,7 @@ void check_win_condition()
 		printf("\nYOU GUESSED:\nPREACHER\n");
 	}
 
+	//i na kraju, ako su pogodjeni svi, pokrece se clipping ravan
 	if(level_two_guessed_pulp_fiction && level_two_guessed_green_mile && level_two_guessed_shawshank && level_two_guessed_looper && level_two_guessed_preacher){
 		glutTimerFunc(TIMER_INTERVAL2, on_timer, TIMER_ID7);
 	}
@@ -671,8 +719,6 @@ void draw_scene()
 	
 	
 	/*postavljanje materijala*/
-
-
 	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsBlack);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsBlack);
 	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsBlack);
@@ -758,14 +804,8 @@ void init_colors()
 
 
 }
-void printColor(int i)
-{
-	printf("%lf,%lf,%lf,%lf\n",Colors[i].specular_coeffs[0],Colors[i].specular_coeffs[1],Colors[i].specular_coeffs[2],specular_coeffs[3]);
-}
  
-  /*
-   * Funkcija koja iscrtava zelenu podlogu
-   */
+
 void draw_ground()
 {
 	glScalef(scaleAnimation,scaleAnimation,scaleAnimation);
@@ -781,15 +821,12 @@ void draw_ground()
 	glutSolidCube(1);
 	glPopMatrix();
 }
+
 void draw_clouds()
 {
     init_colors();
 
 	srand(999);
-	// for(int i=0; i<COLOR_NUM;i++)
-	// {
-	// 	printColor(i);
-	// }
 	if(triggerLargeClouds)
 	{
 		triggerLargeClouds=false;
@@ -848,34 +885,33 @@ void draw_clouds()
 
 void draw_cloud(int randomColor)
 {
-	//if(shouldDrawColor[randomColor]==false)return;
-	
+
 	glMaterialfv(GL_FRONT,GL_AMBIENT,Colors[randomColor].ambient_coeffs);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,Colors[randomColor].diffuse_coeffs);
 	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
-	// glMaterialfv(GL_FRONT,GL_SPECULAR,Colors[randomColor].specular_coeffs);
 	glMateriali(GL_FRONT,GL_SHININESS,10);
 	
 	glTranslatef(0,0,4);
 	glScalef(0.6,0.6,0.4);
-	/*glavni deo krosnje*/
+
+	/*glavni deo oblaka*/
 	glPushMatrix();
 	glScalef(0.2,0.4,0.2);
 	glutSolidSphere(2.8,50,50);
 	glPopMatrix();
 
-	/*delovi krosnje*/
+	/*delovi oblaka*/
 
 	for(int i =0;i<5;i++)
 	{
-		
+		//na osnovu sfericnih koordinata se randomizuje pozicija oblaka
 		double a = ((double)rand()/RAND_MAX)*360;
 		double b = ((double)rand()/RAND_MAX)*360;
 		glPushMatrix();
-		glScalef(2.5,1,1);
-		glTranslatef(0.56*cos(a)*cos(b), 0.56*sin(a)*cos(b), 0.56*sin(b));
-		glScalef(0.1,0.6,0.1);
-		glutSolidSphere(2.8,20,20);
+			glScalef(2.5,1,1);
+			glTranslatef(0.56*cos(a)*cos(b), 0.56*sin(a)*cos(b), 0.56*sin(b));
+			glScalef(0.1,0.6,0.1);
+			glutSolidSphere(2.8,20,20);
 		glPopMatrix();
 
 	}
@@ -883,13 +919,12 @@ void draw_cloud(int randomColor)
 }
 void draw_rocks()
 {
+	//inicijalizuju se boje
     init_colors();
 
 	srand(101);
-	// for(int i=0; i<COLOR_NUM;i++)
-	// {
-	// 	printColor(i);
-	// }
+
+	//proverava se da li je neki od triggera iskoricen, koji je relevantan za kamenje, ako jeste, postavlja se na false i izaziva propratni efekat
 	if(triggerTinyRocks)
 	{
 		triggerTinyRocks=false;
@@ -909,9 +944,9 @@ void draw_rocks()
 	{
 		for(int i=0; i<COLOR_NUM; i++)
 		{
+			//triggeri za boje su potpuno odbojeni od svih ostalih, jedan trigger za boju prouzrokuje sve objekte te boje da promene stanje
 			if(triggerColor[i]==true)
 			{
-				// triggerColor[i]=false;
 				shouldDrawColorRocks[i] = shouldDrawColorRocks[i] == true?false:true;
 			}
 		}
@@ -921,17 +956,19 @@ void draw_rocks()
 			/*odredjivanje polarnih koordinata svakog drveta*/
 			double a = ((double)rand()/RAND_MAX)*360;
 			double r = ((double)rand()/RAND_MAX)*5;
+
+			//odredjivanje nasumicne boje
 			int random = rand();
 			int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
 			//printf("Color of rock: %d\n",randomColor);
 			//printf("number:%jd\nColor: %d\n",random,randomColor);
 			
-			
+			//ako je dozvoljeno crtanje kamenja ove boje, onda se crtaju
 			if(shouldDrawColorRocks[randomColor])
 			{
 				glPushMatrix();
-				glTranslatef(r*cos(a),r*sin(a),0);
-				draw_rock(randomColor);
+					glTranslatef(r*cos(a),r*sin(a),0);
+					draw_rock(randomColor);
 				glPopMatrix();
 			}
 		
@@ -942,29 +979,26 @@ void draw_rocks()
 
 void draw_rock(int randomColor)
 {
-	//if(shouldDrawColor[randomColor]==false)return;
 	
 	glMaterialfv(GL_FRONT,GL_AMBIENT,Colors[randomColor].ambient_coeffs);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,Colors[randomColor].diffuse_coeffs);
 	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
 	
-    
-    // glMaterialfv(GL_FRONT,GL_SPECULAR,Colors[randomColor].specular_coeffs);
 	glMateriali(GL_FRONT,GL_SHININESS,0);
 	
 
 	glPushMatrix();
-	glTranslatef(0,0,-0.4);
-	glScalef(0.25,0.25,0.25);
-	glRotatef(0.5*randomColor,0,0,1);
-	glutSolidDodecahedron();
+		glTranslatef(0,0,-0.4);
+		glScalef(0.25,0.25,0.25);
+		glRotatef(0.5*randomColor,0,0,1);
+		glutSolidDodecahedron();
 	glPopMatrix();
 }
 
 
 void draw_forest()
 {
-	
+	//postupak isti kao u draw_rocks funkciji
 	srand(100);
 	if(triggerLargeTrees)
 	{
@@ -989,7 +1023,6 @@ void draw_forest()
 		{
 			if(triggerColor[i]==true)
 			{
-				// triggerColor[i]=false;
 				shouldDrawColorTrees[i] = shouldDrawColorTrees[i] == true?false:true;
 			}
 		}
@@ -1002,15 +1035,15 @@ void draw_forest()
 			double r = ((double)rand()/RAND_MAX)*5;
 			int random = rand();
 			int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
-			//printf("number:%jd\nColor: %d\n",random,randomColor);
+
 			if(shouldDrawColorTrees[randomColor])
 			{
 				glPushMatrix();
-				glTranslatef(r*cos(a),r*sin(a),0);
-				draw_tree(randomColor);
+					glTranslatef(r*cos(a),r*sin(a),0);
+					draw_tree(randomColor);
 				glPopMatrix();
 			}else
-			{
+			{//nadoknadjuju se rand() pozivi da bi objekti ostali na istom mestu bez obzira koji se crtaju
 				for(int i=0;i<80;i++)
 					rand();
 			}
@@ -1019,8 +1052,7 @@ void draw_forest()
 }
 void draw_tree(int randomColor)
 {
-	//if(shouldDrawColor[randomColor]==false)return;
-	
+
 	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsBrown);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsBrown);
 	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsBrown);
@@ -1033,7 +1065,7 @@ void draw_tree(int randomColor)
 	gluCylinder(quad,1,1,1,50,50);
 	glPopMatrix();
 
-
+	//drukcija implementacija random boje, dinamicka promena RGB koeficijenata na osnovu int <- [0,3]
 	GLfloat ambient_coeffsRandom[] = { 0.05, 0.05, 0.05, 1 };
 	GLfloat diffuse_coeffsRandom[] = { 0.05, 0.05, 0.05, 1 };
 	GLfloat specular_coeffsRandom[] = { 0.05, 0.05, 0.05, 0.5 };
@@ -1061,6 +1093,7 @@ void draw_tree(int randomColor)
 		double b = ((double)rand()/RAND_MAX)*360;
 		glPushMatrix();
 
+		//randomizacija koricenjem sfericnih koordinata
 		glTranslatef(0.56*cos(a)*cos(b), 0.56*sin(a)*cos(b), 0.56*sin(b)+1.5);
 		glScalef(0.1,0.1,0.1);
 		glutSolidSphere(2.8,50,50);
