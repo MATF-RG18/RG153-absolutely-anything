@@ -48,6 +48,7 @@ static void draw_cloud();
 static void draw_clouds();
 static void printColor(int i);
 static bool toggle(bool shouldDraw); 
+static void triggerColors();
 
   /*
    * Funkcije za lakse testiranje programa:
@@ -81,6 +82,9 @@ int posY = 0;
 
 //niz indikatora koja drveta ce se zapravo crtati
 bool shouldDrawColor[COLOR_NUM];
+bool shouldDrawColorClouds[COLOR_NUM];
+bool shouldDrawColorTrees[COLOR_NUM];
+bool shouldDrawColorRocks[COLOR_NUM];
 bool shouldDraw[OBJECT_NUM];
 
 bool shouldDrawLarge=true;
@@ -93,6 +97,22 @@ bool shouldDrawTrees=true;
 bool shouldDrawClouds=true;
 bool shouldDrawAlive=true;
 bool shouldDrawDead=true;
+
+bool triggerColor[COLOR_NUM];
+
+bool triggerLargeClouds=false;
+bool triggerLargeTrees=false;
+bool triggerTinyRocks=false;
+bool triggerSolidRocks=false;
+bool triggerSolidTrees=false;
+bool triggerAiryClouds=false;
+
+bool triggerRocks=false;
+bool triggerTrees=false;
+bool triggerClouds=false;
+bool triggerAlive=false;
+bool triggerDeadRocks=false;
+bool triggerDeadClouds=false;
 
 /*Spisak svih mogucih materijala, za sada su koef. oblika atribut_coeff[inicijal boje materijala]*/
 
@@ -124,12 +144,6 @@ GLfloat diffuse_coeffsGray[] = {0.5, 0.5, 0.5, 1};
 GLfloat specular_coeffsGray[] = { 0, 0, 0, 1 };
 
 Color Colors[COLOR_NUM];
-
-
-bool toggle(bool shouldDraw)
-{
-	return shouldDraw==true?false:true;
-}
 
 
 void init_colors()
@@ -204,26 +218,57 @@ void draw_clouds()
 	// {
 	// 	printColor(i);
 	// }
-
-	for(int i=0; i<CLOUD_NUM; i++)
+	if(triggerLargeClouds)
 	{
+		triggerLargeClouds=false;
+		shouldDrawClouds = shouldDrawClouds == true?false:true;
+	}
+	if(triggerAiryClouds)
+	{
+		triggerAiryClouds=false;
+		shouldDrawClouds = shouldDrawClouds == true?false:true;
+	}
+	if(triggerDeadClouds)
+	{
+		triggerDeadClouds=false;
+		shouldDrawClouds = shouldDrawClouds == true?false:true;
+	}
+	
+	if(shouldDrawClouds)
+	{
+		for(int i=0; i<COLOR_NUM; i++)
+		{
+			if(triggerColor[i]==true)
+			{
+				// triggerColor[i]=false;
+				shouldDrawColorClouds[i] = shouldDrawColorClouds[i] == true?false:true;
+			}
+		}
+		for(int i=0; i<CLOUD_NUM; i++)
+		{
+			
+			/*odredjivanje polarnih koordinata svakog drveta*/
+			double a = ((double)rand()/RAND_MAX)*360;
+			double r = ((double)rand()/RAND_MAX)*5;
+			int random = rand();
+			int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
+
+			
+			//printf("Color of rock: %d\n",randomColor);
+			//printf("number:%jd\nColor: %d\n",random,randomColor);
+			
+			if(shouldDrawColorClouds[randomColor])
+			{
+				glPushMatrix();
+				glTranslatef(r*cos(a),r*sin(a),0);
+				draw_cloud(randomColor);
+				glPopMatrix();
+			}else
+			{
+				for(int i=0;i<10;i++)
+					rand();
+			}
 		
-		/*odredjivanje polarnih koordinata svakog drveta*/
-		double a = ((double)rand()/RAND_MAX)*360;
-		double r = ((double)rand()/RAND_MAX)*5;
-		int random = rand();
-		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
-		//printf("Color of rock: %d\n",randomColor);
-		//printf("number:%jd\nColor: %d\n",random,randomColor);
-		if(shouldDrawColor[randomColor] && (shouldDrawAiry || shouldDrawLarge))
-		{
-			glPushMatrix();
-			glTranslatef(r*cos(a),r*sin(a),0);
-			draw_cloud(randomColor);
-			glPopMatrix();
-		}else
-		{
-			for(int i=0;i<10;i++)rand();
 		}
 	}
 
@@ -273,23 +318,51 @@ void draw_rocks()
 	// {
 	// 	printColor(i);
 	// }
-
-	for(int i=0; i<ROCK_NUM; i++)
+	if(triggerTinyRocks)
 	{
-		
-		/*odredjivanje polarnih koordinata svakog drveta*/
-		double a = ((double)rand()/RAND_MAX)*360;
-		double r = ((double)rand()/RAND_MAX)*5;
-		int random = rand();
-		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
-		//printf("Color of rock: %d\n",randomColor);
-		//printf("number:%jd\nColor: %d\n",random,randomColor);
-		if(shouldDrawColor[randomColor] && (shouldDrawSolid||shouldDrawTiny))
+		triggerTinyRocks=false;
+		shouldDrawRocks = shouldDrawRocks == true?false:true;
+	}
+	if(triggerSolidRocks)
+	{
+		triggerSolidRocks=false;
+		shouldDrawRocks = shouldDrawRocks == true?false:true;
+	}
+	if(triggerDeadRocks)
+	{
+		triggerDeadRocks=false;
+		shouldDrawRocks = shouldDrawRocks == true?false:true;
+	}
+	if(shouldDrawRocks)
+	{
+		for(int i=0; i<COLOR_NUM; i++)
 		{
-			glPushMatrix();
-			glTranslatef(r*cos(a),r*sin(a),0);
-			draw_rock(randomColor);
-			glPopMatrix();
+			if(triggerColor[i]==true)
+			{
+				// triggerColor[i]=false;
+				shouldDrawColorRocks[i] = shouldDrawColorRocks[i] == true?false:true;
+			}
+		}
+		for(int i=0; i<ROCK_NUM; i++)
+		{
+			
+			/*odredjivanje polarnih koordinata svakog drveta*/
+			double a = ((double)rand()/RAND_MAX)*360;
+			double r = ((double)rand()/RAND_MAX)*5;
+			int random = rand();
+			int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
+			//printf("Color of rock: %d\n",randomColor);
+			//printf("number:%jd\nColor: %d\n",random,randomColor);
+			
+			
+			if(shouldDrawColorRocks[randomColor])
+			{
+				glPushMatrix();
+				glTranslatef(r*cos(a),r*sin(a),0);
+				draw_rock(randomColor);
+				glPopMatrix();
+			}
+		
 		}
 	}
 	
@@ -317,30 +390,57 @@ void draw_rock(int randomColor)
 
 void draw_forest()
 {
-
 	srand(101);
-	for(int i=0; i<TREE_NUM; i++)
+	if(triggerLargeTrees)
 	{
-		
-		/*odredjivanje polarnih koordinata svakog drveta*/
-		double a = ((double)rand()/RAND_MAX)*360;
-		double r = ((double)rand()/RAND_MAX)*5;
-		int random = rand();
-		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*3);
-		//printf("number:%jd\nColor: %d\n",random,randomColor);
-		if(shouldDrawColor[randomColor] && (shouldDrawLarge || shouldDrawSolid) && shouldDrawAlive)
-		{
-			glPushMatrix();
-			glTranslatef(r*cos(a),r*sin(a),0);
-			draw_tree(randomColor);
-			glPopMatrix();
-		}else
-		{
-			for(int i=0;i<80;i++)
-				rand();
-		}
+		triggerLargeTrees=false;
+		shouldDrawTrees = shouldDrawTrees == true?false:true;
+	}
+	if(triggerAlive)
+	{
+		triggerAlive=false;
+		shouldDrawTrees = shouldDrawTrees == true?false:true;
+	}
+	if(triggerSolidTrees)
+	{
+		triggerSolidTrees=false;
+		shouldDrawTrees = shouldDrawTrees == true?false:true;
 	}
 
+	
+	if(shouldDrawTrees)
+	{
+		for(int i=0; i<COLOR_NUM; i++)
+		{
+			if(triggerColor[i]==true)
+			{
+				// triggerColor[i]=false;
+				shouldDrawColorTrees[i] = shouldDrawColorTrees[i] == true?false:true;
+			}
+		}
+		for(int i=0; i<TREE_NUM; i++)
+		{
+			
+			
+			/*odredjivanje polarnih koordinata svakog drveta*/
+			double a = ((double)rand()/RAND_MAX)*360;
+			double r = ((double)rand()/RAND_MAX)*5;
+			int random = rand();
+			int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*3);
+			//printf("number:%jd\nColor: %d\n",random,randomColor);
+			if(shouldDrawColorTrees[randomColor])
+			{
+				glPushMatrix();
+				glTranslatef(r*cos(a),r*sin(a),0);
+				draw_tree(randomColor);
+				glPopMatrix();
+			}else
+			{
+				for(int i=0;i<80;i++)
+					rand();
+			}
+		}
+	}
 }
 void draw_tree(int randomColor)
 {
@@ -427,10 +527,12 @@ static void on_keyboard(unsigned char key, int x, int y)
 			// glutPostRedisplay();
 			// break;
 
-			// case 'd':
-			// posX -=1;
-			// glutPostRedisplay();
-			// break;
+			case 'd':
+			case 'D':
+			triggerDeadClouds=true;
+			triggerDeadRocks=true;
+			glutPostRedisplay();
+			break;
 
 			// case 's':
 			// posY +=1;
@@ -445,65 +547,68 @@ static void on_keyboard(unsigned char key, int x, int y)
 
 			case 'v':
 			case 'V':
-			shouldDrawAlive=toggle(shouldDrawAlive);
+			triggerAlive=true;
 			glutPostRedisplay();
 			break;
 
 
 			case 'q':
 			case 'Q':
-			shouldDrawColor[3]=(shouldDrawColor[3]==false)? true :false;
+			triggerColor[GRAY_COLOR]=true;
 			glutPostRedisplay();
 			break;
 
 			case 'e':
 			case 'E':
-			shouldDrawDead=toggle(shouldDrawDead);
+			triggerDeadClouds=true;
+			triggerDeadRocks=true;
 			glutPostRedisplay();
 			break;
 
 			case 'r':
 			case 'R':
-			shouldDrawColor[0]=(shouldDrawColor[0]==false)? true :false;
+			triggerColor[RED_COLOR]=true;
 			glutPostRedisplay();
 			break;
 
 			case 'g':
 			case 'G':
-			shouldDrawColor[1]=(shouldDrawColor[1]==false)? true :false;
+			triggerColor[GREEN_COLOR]=true;
 			glutPostRedisplay();
 			break;
 
 			case 'b':
 			case 'B':
-			shouldDrawColor[2]=(shouldDrawColor[2]==false)? true :false;
+			triggerColor[BLUE_COLOR]=true;
 			glutPostRedisplay();
 			break;
 
 
 			case 's':
 			case 'S':
-			shouldDrawSolid=toggle(shouldDrawSolid);
+			triggerSolidRocks=true;
+			triggerSolidTrees=true;
 			glutPostRedisplay();
 
 			break;
 
 			case 'a':
 			case 'A':
-			shouldDrawAiry=toggle(shouldDrawAiry);
+			triggerAiryClouds=true;
 			glutPostRedisplay();
 
 			break;
 
 			case 'l':
 			case 'L':
-			shouldDrawLarge=toggle(shouldDrawLarge);
+			triggerLargeClouds=true;
+			triggerLargeTrees=true;
 			glutPostRedisplay();
 			break;
 
 			case 't':
 			case 'T':
-			shouldDrawTiny=toggle(shouldDrawTiny);
+			triggerTinyRocks=true;
 			glutPostRedisplay();
 			break;
 			// case 'S':
@@ -578,6 +683,7 @@ static void on_display(void)
 
     else if(nivo == 1)
     {
+		
 	    draw_ground();
 		
 
@@ -587,23 +693,29 @@ static void on_display(void)
 	    	draw_forest();
 
 	    glPopMatrix();
+
+		draw_rocks();
+		draw_clouds();
+		for(int i=0; i<COLOR_NUM; i++)
+		{
+			triggerColor[i]=false;
+		}
+		
+
+		printf("##########################\n");
+		printf("Red:%d\n",shouldDrawColor[0]);
+		printf("Green:%d\n",shouldDrawColor[1]);
+		printf("Blue:%d\n",shouldDrawColor[2]);
+		printf("Gray:%d\n",shouldDrawColor[3]);
+		printf("Solid:%d\n",shouldDrawSolid);
+		printf("Airy:%d\n",shouldDrawAiry);
+		printf("Large:%d\n",shouldDrawLarge);
+		printf("Tiny:%d\n",shouldDrawTiny);
+		printf("Alive:%d\n",shouldDrawAlive);
 	}
 
-	draw_rocks();
-	draw_clouds();
+	draw_debug_coosys();
 	
-    draw_debug_coosys();
-
-	printf("##########################\n");
-	printf("Red:%d\n",shouldDrawColor[0]);
-	printf("Green:%d\n",shouldDrawColor[1]);
-	printf("Blue:%d\n",shouldDrawColor[2]);
-	printf("Gray:%d\n",shouldDrawColor[3]);
-	printf("Solid:%d\n",shouldDrawSolid);
-	printf("Airy:%d\n",shouldDrawAiry);
-	printf("Large:%d\n",shouldDrawLarge);
-	printf("Tiny:%d\n",shouldDrawTiny);
-	printf("Alive:%d\n",shouldDrawAlive);
  
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
@@ -623,7 +735,9 @@ int main(int argc, char **argv)
 	//inicijalizacija, sve drvece se iscrtava
 	for(int i=0;i<COLOR_NUM;i++)
 	{
-		shouldDrawColor[i]=true;
+		shouldDrawColorClouds[i]=true;
+		shouldDrawColorRocks[i]=true;
+		shouldDrawColorTrees[i]=true;
 	}
  
     /* Inicijalizuje se GLUT. */
