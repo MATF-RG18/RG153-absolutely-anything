@@ -4,22 +4,51 @@
 #include<stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string.h>
+#include <stdbool.h>
+
+#define TREE_NUM 10
+#define CLOUD_NUM 10
+#define ROCK_NUM 10
+#define COLOR_NUM 4
+
+#define RED_COLOR 0
+#define GREEN_COLOR 1
+#define BLUE_COLOR 2
+#define GRAY_COLOR 3
+
+#define OBJECT_NUM 3
+#define TREE 0
+#define ROCK 1
+#define CLOUD 2
+
 #define _POSIX_C_SOURCE 199309L
 
+typedef struct Color{
+	GLfloat ambient_coeffs[4];
+	GLfloat diffuse_coeffs[4];
+	GLfloat specular_coeffs[4];
+}Color;
 
  
   /* Konstanta pi. */
-const static float pi = 3.141592653589793;
+static const float pi = 3.141592653589793;
  
   /* Deklaracije callback funkcija. */
 static void on_keyboard(unsigned char key, int x, int y);
 static void on_reshape(int width, int height);
 static void on_display(void);
-static void on_timer(int);
+static void on_timer(int id);
 static void draw_tree();
 static void draw_forest();
 static void draw_ground();
- 
+static void draw_rock();
+static void draw_rocks();
+static void draw_cloud();
+static void draw_clouds();
+static void printColor(int i);
+static bool toggle(bool shouldDraw); 
+
   /*
    * Funkcije za lakse testiranje programa:
    *
@@ -39,12 +68,34 @@ static void draw_debug_coosys();
 #define TIMER_ID 0
 #define TIMER_ID2 0
 #define TIMER_INTERVAL 1
+
+
+
 double animation_parameter = 0;
 int animation_ongoing = 0;
 double brzina=0;
 int crtajDrvece=1;
-int nivo = 0;
- 	/*Spisak svih mogucih materijala, za sada su koef. oblika atribut_coeff[inicijal boje materijala]*/
+int nivo = 1;
+int posX = 0;
+int posY = 0;
+
+//niz indikatora koja drveta ce se zapravo crtati
+bool shouldDrawColor[COLOR_NUM];
+bool shouldDraw[OBJECT_NUM];
+
+bool shouldDrawLarge=true;
+bool shouldDrawTiny=true;
+bool shouldDrawSolid=true;
+bool shouldDrawAiry=true;
+
+bool shouldDrawRocks=true;
+bool shouldDrawTrees=true;
+bool shouldDrawClouds=true;
+bool shouldDrawAlive=true;
+bool shouldDrawDead=true;
+
+/*Spisak svih mogucih materijala, za sada su koef. oblika atribut_coeff[inicijal boje materijala]*/
+
 GLfloat ambient_coeffs[] = { 0.3, 0.7, 0.3, 1 };
 GLfloat diffuse_coeffs[] = { 0.2, 1, 0.2, 1 };
 GLfloat specular_coeffs[] = { 0.5, 0.5, 0.5, 1 };
@@ -52,11 +103,13 @@ GLfloat shininess = 50;
 
 GLfloat ambient_coeffsR[] = { 0.7, 0.3, 0.3, 1 };
 GLfloat diffuse_coeffsR[] = { 1, 0.2, 0.2, 1 };
-GLfloat specular_coeffsR[] = { 0.5, 0.5, 0.5, 1 };
+GLfloat specular_coeffsR[] = { 0.7, 0.5, 0.5, 1 };
+
 
 GLfloat ambient_coeffsG[] = { 0.3, 0.7, 0.3, 1 };
 GLfloat diffuse_coeffsG[] = { 0.2, 0.5, 0.2, 1 };
-GLfloat specular_coeffsG[] = { 0, 0, 0, 1 };
+GLfloat specular_coeffsG2[] = { 0.2, 0.5, 0.2, 0.5 };
+GLfloat specular_coeffsG[] = { 0, 0, 0, 0.1 };
 
 GLfloat ambient_coeffsB[] = { 0.3, 0.3, 0.7, 1 };
 GLfloat diffuse_coeffsB[] = { 0.2, 0.2, 1, 1 };
@@ -65,17 +118,77 @@ GLfloat specular_coeffsB[] = { 0, 0, 0, 1 };
 GLfloat ambient_coeffsBrown[] = { 139/255.0, 69/255.0, 19/255.0, 1 };
 GLfloat diffuse_coeffsBrown[] = { 139/255.0, 89/255.0, 29/255.0, 1 };
 GLfloat specular_coeffsBrown[] = { 0, 0, 0, 1 };
+
+GLfloat ambient_coeffsGray[] = {0.3, 0.3, 0.3, 1};
+GLfloat diffuse_coeffsGray[] = {0.5, 0.5, 0.5, 1};
+GLfloat specular_coeffsGray[] = { 0, 0, 0, 1 };
+
+Color Colors[COLOR_NUM];
+
+
+bool toggle(bool shouldDraw)
+{
+	return shouldDraw==true?false:true;
+}
+
+
+void init_colors()
+{
+	/*Pravljenja crvene,plave i zelene boje*/
+	for(int i=0; i<3;i++)
+	{
+		Colors[i].ambient_coeffs[0]=0.05;
+		Colors[i].ambient_coeffs[1]=0.05;
+		Colors[i].ambient_coeffs[2]=0.05;
+		Colors[i].ambient_coeffs[3]=1;
+
+		Colors[i].diffuse_coeffs[0]=0.05;
+		Colors[i].diffuse_coeffs[1]=0.05;
+		Colors[i].diffuse_coeffs[2]=0.05;
+		Colors[i].diffuse_coeffs[3]=1;
+
+		Colors[i].specular_coeffs[0]=0.5;
+		Colors[i].specular_coeffs[1]=0.5;
+		Colors[i].specular_coeffs[2]=0.5;
+		Colors[i].specular_coeffs[3]=0.5;
+
+		Colors[i].ambient_coeffs[i]=0.7;
+		Colors[i].diffuse_coeffs[i]=1;
+	}
+	
+	/*Dodavanje sive boje*/
+	Colors[3].ambient_coeffs[0]=0.3;
+	Colors[3].ambient_coeffs[1]=0.3;
+	Colors[3].ambient_coeffs[2]=0.3;
+	Colors[3].ambient_coeffs[3]=1;
+
+	Colors[3].diffuse_coeffs[0]=0.5;
+	Colors[3].diffuse_coeffs[1]=0.5;
+	Colors[3].diffuse_coeffs[2]=0.5;
+	Colors[3].diffuse_coeffs[3]=1;
+
+	Colors[3].specular_coeffs[0]=0;
+	Colors[3].specular_coeffs[1]=0;
+	Colors[3].specular_coeffs[2]=0;
+	Colors[3].specular_coeffs[3]=0.1;
+
+
+}
+void printColor(int i)
+{
+	printf("%lf,%lf,%lf,%lf\n",Colors[i].specular_coeffs[0],Colors[i].specular_coeffs[1],Colors[i].specular_coeffs[2],specular_coeffs[3]);
+}
  
   /*
-   * Funkcija koja iscrtava zeleni most
+   * Funkcija koja iscrtava zelenu podlogu
    */
 void draw_ground()
 {
 	/*postavljanje podloge, odnosno grass plain*/
 	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsG);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsG);
-	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
-	glMateriali(GL_FRONT,GL_SHININESS,100);
+	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG2);
+	glMateriali(GL_FRONT,GL_SHININESS,1);
 
 	glPushMatrix();
 	glTranslatef(0,0,-0.5);
@@ -83,27 +196,161 @@ void draw_ground()
 	glutSolidCube(1);
 	glPopMatrix();
 }
-void draw_forest()
+void draw_clouds()
 {
-	srand(50);
-	for(int i=0; i<20; i++)
+
+	srand(999);
+	// for(int i=0; i<COLOR_NUM;i++)
+	// {
+	// 	printColor(i);
+	// }
+
+	for(int i=0; i<CLOUD_NUM; i++)
 	{
+		
 		/*odredjivanje polarnih koordinata svakog drveta*/
 		double a = ((double)rand()/RAND_MAX)*360;
 		double r = ((double)rand()/RAND_MAX)*5;
+		int random = rand();
+		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
+		//printf("Color of rock: %d\n",randomColor);
+		//printf("number:%jd\nColor: %d\n",random,randomColor);
+		if(shouldDrawColor[randomColor] && (shouldDrawAiry || shouldDrawLarge))
+		{
+			glPushMatrix();
+			glTranslatef(r*cos(a),r*sin(a),0);
+			draw_cloud(randomColor);
+			glPopMatrix();
+		}else
+		{
+			for(int i=0;i<10;i++)rand();
+		}
+	}
+
+}
+
+void draw_cloud(int randomColor)
+{
+	//if(shouldDrawColor[randomColor]==false)return;
+	
+	glMaterialfv(GL_FRONT,GL_AMBIENT,Colors[randomColor].ambient_coeffs);
+	glMaterialfv(GL_FRONT,GL_DIFFUSE,Colors[randomColor].diffuse_coeffs);
+	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
+	// glMaterialfv(GL_FRONT,GL_SPECULAR,Colors[randomColor].specular_coeffs);
+	glMateriali(GL_FRONT,GL_SHININESS,10);
+	
+	glTranslatef(0,0,4);
+	glScalef(0.6,0.6,0.4);
+	/*glavni deo krosnje*/
+	glPushMatrix();
+	glScalef(0.2,0.4,0.2);
+	glutSolidSphere(2.8,50,50);
+	glPopMatrix();
+
+	/*delovi krosnje*/
+
+	for(int i =0;i<5;i++)
+	{
+		
+		double a = ((double)rand()/RAND_MAX)*360;
+		double b = ((double)rand()/RAND_MAX)*360;
 		glPushMatrix();
-		glTranslatef(r*cos(a),r*sin(a),0);
-		draw_tree();
+		glScalef(2.5,1,1);
+		glTranslatef(0.56*cos(a)*cos(b), 0.56*sin(a)*cos(b), 0.56*sin(b));
+		glScalef(0.1,0.6,0.1);
+		glutSolidSphere(2.8,20,20);
 		glPopMatrix();
 
-
 	}
+
 }
-void draw_tree()
+void draw_rocks()
 {
+
+
+	srand(101);
+	// for(int i=0; i<COLOR_NUM;i++)
+	// {
+	// 	printColor(i);
+	// }
+
+	for(int i=0; i<ROCK_NUM; i++)
+	{
+		
+		/*odredjivanje polarnih koordinata svakog drveta*/
+		double a = ((double)rand()/RAND_MAX)*360;
+		double r = ((double)rand()/RAND_MAX)*5;
+		int random = rand();
+		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*4);
+		//printf("Color of rock: %d\n",randomColor);
+		//printf("number:%jd\nColor: %d\n",random,randomColor);
+		if(shouldDrawColor[randomColor] && (shouldDrawSolid||shouldDrawTiny))
+		{
+			glPushMatrix();
+			glTranslatef(r*cos(a),r*sin(a),0);
+			draw_rock(randomColor);
+			glPopMatrix();
+		}
+	}
+	
+}
+
+void draw_rock(int randomColor)
+{
+	//if(shouldDrawColor[randomColor]==false)return;
+	
+	glMaterialfv(GL_FRONT,GL_AMBIENT,Colors[randomColor].ambient_coeffs);
+	glMaterialfv(GL_FRONT,GL_DIFFUSE,Colors[randomColor].diffuse_coeffs);
+	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
+	// glMaterialfv(GL_FRONT,GL_SPECULAR,Colors[randomColor].specular_coeffs);
+	glMateriali(GL_FRONT,GL_SHININESS,10);
+	
+
+	glPushMatrix();
+	glTranslatef(0,0,-0.4);
+	glScalef(0.25,0.25,0.25);
+	glRotatef(0.5*randomColor,0,0,1);
+	glutSolidDodecahedron();
+	glPopMatrix();
+}
+
+
+void draw_forest()
+{
+
+	srand(101);
+	for(int i=0; i<TREE_NUM; i++)
+	{
+		
+		/*odredjivanje polarnih koordinata svakog drveta*/
+		double a = ((double)rand()/RAND_MAX)*360;
+		double r = ((double)rand()/RAND_MAX)*5;
+		int random = rand();
+		int randomColor = (int)(((double)(random*1.0)/(double)(RAND_MAX))*3);
+		//printf("number:%jd\nColor: %d\n",random,randomColor);
+		if(shouldDrawColor[randomColor] && (shouldDrawLarge || shouldDrawSolid) && shouldDrawAlive)
+		{
+			glPushMatrix();
+			glTranslatef(r*cos(a),r*sin(a),0);
+			draw_tree(randomColor);
+			glPopMatrix();
+		}else
+		{
+			for(int i=0;i<80;i++)
+				rand();
+		}
+	}
+
+}
+void draw_tree(int randomColor)
+{
+	//if(shouldDrawColor[randomColor]==false)return;
+	
 	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsBrown);
 	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsBrown);
-	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsBrown);	
+	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsBrown);
+	glMateriali(GL_FRONT,GL_SHININESS,25);	
+
 
 	glPushMatrix();
 	glScalef(0.2,0.2,1.5);
@@ -111,8 +358,16 @@ void draw_tree()
 	gluCylinder(quad,1,1,1,50,50);
 	glPopMatrix();
 
-	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsG);
-	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsG);
+
+	GLfloat ambient_coeffsRandom[] = { 0.05, 0.05, 0.05, 1 };
+	GLfloat diffuse_coeffsRandom[] = { 0.05, 0.05, 0.05, 1 };
+	GLfloat specular_coeffsRandom[] = { 0.05, 0.05, 0.05, 0.5 };
+	ambient_coeffsRandom[randomColor]=0.7;
+	diffuse_coeffsRandom[randomColor]=1;
+
+
+	glMaterialfv(GL_FRONT,GL_AMBIENT,ambient_coeffsRandom);
+	glMaterialfv(GL_FRONT,GL_DIFFUSE,diffuse_coeffsRandom);
 	glMaterialfv(GL_FRONT,GL_SPECULAR,specular_coeffsG);
 
 	/*glavni deo krosnje*/
@@ -124,8 +379,9 @@ void draw_tree()
 
 	/*delovi krosnje*/
 
-	for(int i =0;i<50;i++)
+	for(int i =0;i<40;i++)
 	{
+		
 		double a = ((double)rand()/RAND_MAX)*360;
 		double b = ((double)rand()/RAND_MAX)*360;
 		glPushMatrix();
@@ -166,32 +422,107 @@ static void on_keyboard(unsigned char key, int x, int y)
 	{
 		switch(key)
 		{
-			case 27:
-			animation_parameter=0;
-			brzina=0;
-			nivo=0;
+			// case 'a':
+			// posX +=1;
+			// glutPostRedisplay();
+			// break;
+
+			// case 'd':
+			// posX -=1;
+			// glutPostRedisplay();
+			// break;
+
+			// case 's':
+			// posY +=1;
+			// glutPostRedisplay();
+			// break;
+
+			// case 'w':
+			// posY -=1;
+			// glutPostRedisplay();
+			// break;
+
+
+			case 'v':
+			case 'V':
+			shouldDrawAlive=toggle(shouldDrawAlive);
 			glutPostRedisplay();
 			break;
-			case 'S':
-			case 's':
-			{
-				animation_ongoing=0;
-				brzina=0;
 
-			}
+
+			case 'q':
+			case 'Q':
+			shouldDrawColor[3]=(shouldDrawColor[3]==false)? true :false;
+			glutPostRedisplay();
 			break;
-			case 'd':
-			case 'D':
-			{
-				if(crtajDrvece==1)
-					crtajDrvece=0;
-				else
-					crtajDrvece=1;
-				animation_ongoing=0;
-				brzina=0;
-				glutPostRedisplay();
-			}
+
+			case 'e':
+			case 'E':
+			shouldDrawDead=toggle(shouldDrawDead);
+			glutPostRedisplay();
 			break;
+
+			case 'r':
+			case 'R':
+			shouldDrawColor[0]=(shouldDrawColor[0]==false)? true :false;
+			glutPostRedisplay();
+			break;
+
+			case 'g':
+			case 'G':
+			shouldDrawColor[1]=(shouldDrawColor[1]==false)? true :false;
+			glutPostRedisplay();
+			break;
+
+			case 'b':
+			case 'B':
+			shouldDrawColor[2]=(shouldDrawColor[2]==false)? true :false;
+			glutPostRedisplay();
+			break;
+
+
+			case 's':
+			case 'S':
+			shouldDrawSolid=toggle(shouldDrawSolid);
+			glutPostRedisplay();
+
+			break;
+
+			case 'a':
+			case 'A':
+			shouldDrawAiry=toggle(shouldDrawAiry);
+			glutPostRedisplay();
+
+			break;
+
+			case 'l':
+			case 'L':
+			shouldDrawLarge=toggle(shouldDrawLarge);
+			glutPostRedisplay();
+			break;
+
+			case 't':
+			case 'T':
+			shouldDrawTiny=toggle(shouldDrawTiny);
+			glutPostRedisplay();
+			break;
+			// case 'S':
+			// case 's':
+			// {
+			// 	animation_ongoing=0;
+			// }
+			// break;
+			// case 'd':
+			// case 'D':
+			// {
+			// 	if(crtajDrvece==1)
+			// 		crtajDrvece=0;
+			// 	else
+			// 		crtajDrvece=1;
+			// 	animation_ongoing=0;
+			// 	glutPostRedisplay();
+			// }
+			// break;
 
 			case '-':
 			{
@@ -206,20 +537,18 @@ static void on_keyboard(unsigned char key, int x, int y)
 
 			}
 			break;
-			case 'G':
-			case 'g':
+			case '=':
 			{
-				if(!animation_ongoing)
+				if(animation_ongoing)
 				{
 					
-					animation_ongoing=1;
-					glutTimerFunc(TIMER_INTERVAL,on_timer,TIMER_ID);
-					
+					animation_ongoing=0;		
 
 				}
 
 			}
 			break;
+			
 
 
 		}
@@ -230,41 +559,55 @@ static void on_keyboard(unsigned char key, int x, int y)
 static void on_display(void)
 {
 
- 
+
     /* Brise se prethodni sadrzaj prozora. */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
     /* Inicijalizuje se matrica transformacije. */
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(8,8,2,0,0,0,0,0,1);
- 
+    gluLookAt(posX+12*sin(animation_parameter*2*pi+pi/4),posY+12*cos(animation_parameter*2*pi+pi/4),6,posX,posY,0,0,0,1);
+	//gluLookAt(posX+12*sin(animation_parameter*2*pi),posY+12*cos(animation_parameter*2*pi),2,posX,posY,0,0,0,1);
+	
+	
+
     if(nivo == 0)
     {
-	    drawTitleScreen();
+	    //drawTitleScreen();
 	}
 
     else if(nivo == 1)
     {
 	    draw_ground();
+		
 
 	    glPushMatrix();
-	    glTranslatef(0,0,animation_parameter);
+	    glTranslatef(0,0,0);
 	    if(crtajDrvece==1)
 	    	draw_forest();
 
 	    glPopMatrix();
 	}
 
-
+	draw_rocks();
+	draw_clouds();
+	
     draw_debug_coosys();
 
-
+	printf("##########################\n");
+	printf("Red:%d\n",shouldDrawColor[0]);
+	printf("Green:%d\n",shouldDrawColor[1]);
+	printf("Blue:%d\n",shouldDrawColor[2]);
+	printf("Gray:%d\n",shouldDrawColor[3]);
+	printf("Solid:%d\n",shouldDrawSolid);
+	printf("Airy:%d\n",shouldDrawAiry);
+	printf("Large:%d\n",shouldDrawLarge);
+	printf("Tiny:%d\n",shouldDrawTiny);
+	printf("Alive:%d\n",shouldDrawAlive);
  
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
 }
- 
  
 int main(int argc, char **argv)
 {
@@ -273,8 +616,15 @@ int main(int argc, char **argv)
     GLfloat light_ambient[] = { 0.1, 0.1, 0.1, 1 };
     GLfloat light_diffuse[] = { 0.3, 0.3, 0.3, 1 };
     GLfloat light_specular[] = { 0.5, 0.5, 0.5, 1 };
- 
-
+	
+	/*inicijalizacija globalnog niza boja*/
+	init_colors();
+	
+	//inicijalizacija, sve drvece se iscrtava
+	for(int i=0;i<COLOR_NUM;i++)
+	{
+		shouldDrawColor[i]=true;
+	}
  
     /* Inicijalizuje se GLUT. */
     glutInit(&argc, argv);
@@ -295,7 +645,7 @@ int main(int argc, char **argv)
     glEnable(GL_DEPTH_TEST);
 
 	/* Pozicija svetla (u pitanju je beskonacno daleko svetlo). */
-    GLfloat light_position[] = { 1, 100, 100, 0 };
+    GLfloat light_position[] = { 100, 100, 100, 0 };
  
     glEnable(GL_LIGHTING);
  
@@ -323,10 +673,8 @@ int main(int argc, char **argv)
 static void on_timer(int id)
 {
 	if(id==TIMER_ID)
-	{
-	    animation_parameter += 0.01;
-
-	    brzina+=0.01;
+	{	
+	    animation_parameter += 0.001;
 
 	 	glutPostRedisplay();
 	    if (animation_ongoing) {
@@ -335,15 +683,15 @@ static void on_timer(int id)
 	}
 	else if(id==TIMER_ID2)
 	{
-	    animation_parameter -= 0.01;
+	    animation_parameter -= 0.001;
 
-	    brzina= brzina - 0.01;
 
 	 	glutPostRedisplay();
 	    if (animation_ongoing) {
 	        glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
 	    }
 	}
+	if(animation_parameter>=1)animation_parameter=0;
 }
  
 static void on_reshape(int width, int height)
@@ -352,6 +700,7 @@ static void on_reshape(int width, int height)
     glViewport(0, 0, width, height);
  
     /* Podesava se projekcija. */
+	
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60, (float)width / height, 1, 100);
